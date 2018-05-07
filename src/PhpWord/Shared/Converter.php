@@ -17,6 +17,8 @@
 
 namespace PhpOffice\PhpWord\Shared;
 
+use PhpOffice\PhpWord\Exception\InvalidStyleException;
+
 /**
  * Common converter functions
  */
@@ -226,6 +228,87 @@ class Converter
     public static function emuToPixel($emu = 1)
     {
         return round($emu / self::PIXEL_TO_EMU);
+    }
+
+    /**
+     * Convert an absolute CSS measurement to pixels
+     *
+     * Units for absolute CSS measurements are cm, mm, in, px, pt and pc
+     *
+     * Note that the result will be rounded to the nearest pixel
+     *
+     * @param string $cssMeasurement If no measurement unit is included then cm
+     *                               is assumed
+     *
+     * @throws \PHPOffice\PhpWord\Exception\InvalidStyleException
+     *
+     * @return float
+     */
+    public static function cssToPixel($cssMeasurement = '1cm')
+    {
+        $units = trim(preg_replace('/^-?(?:\\d+\\.\\d+|\\.?\\d+)/', '', trim($cssMeasurement)));
+        $value = preg_replace('/\\D+$/', '', trim($cssMeasurement));
+        if ((strlen($value) > 0) && ($value[0] == '.')) {
+            $value = '0' . $value;
+        }
+        switch (strtolower($units)) {
+            case 'in':
+                $pixel = $value * static::INCH_TO_PIXEL;
+                break;
+            case 'cm':
+            case '':
+                $pixel = ($value / static::INCH_TO_CM) * static::INCH_TO_PIXEL;
+                break;
+            case 'mm':
+                $pixel = ($value / (10 * static::INCH_TO_CM)) * static::INCH_TO_PIXEL;
+                break;
+            case 'pt':
+                $pixel = ($value / static::INCH_TO_POINT) * static::INCH_TO_PIXEL;
+                break;
+            case 'pc':
+                $pixel = ($value / (12 * static::INCH_TO_POINT)) * static::INCH_TO_PIXEL;
+                break;
+            case 'px':
+                $pixel = floatval($value);
+                break;
+            default:
+                throw new InvalidStyleException($cssMeasurement . ' is an unsupported CSS measurement');
+        }
+        return $pixel;
+    }
+
+    /**
+     * Convert an absolute CSS measurement to EMU
+     *
+     * Units for absolute CSS measurements are cm, mm, in, px, pt and pc
+     *
+     * @param string $cssMeasurement If no measurement unit is included then cm
+     *                               is assumed
+     *
+     * @throws \PHPOffice\PhpWord\Exception\InvalidStyleException
+     *
+     * @return float
+     */
+    public static function cssToEmu($cssMeasurement = '1cm')
+    {
+        return static::cssToPixel($cssMeasurement) * static::PIXEL_TO_EMU;
+    }
+
+    /**
+     * Convert an absolute CSS measurement to centimeter
+     *
+     * Units for absolute CSS measurements are cm, mm, in, px, pt and pc
+     *
+     * @param string $cssMeasurement If no measurement unit is included then cm
+     *                               is assumed
+     *
+     * @throws \PHPOffice\PhpWord\Exception\InvalidStyleException
+     *
+     * @return float
+     */
+    public static function cssToCm($cssMeasurement = '1cm')
+    {
+        return static::cssToPixel($cssMeasurement) * static::INCH_TO_CM / static::INCH_TO_PIXEL;
     }
 
     /**
