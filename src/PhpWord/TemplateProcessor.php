@@ -357,7 +357,7 @@ ENDXML;
 
         $tagPos = strpos($this->tempDocumentMainPart, $search);
         if (!$tagPos) {
-            throw new Exception('Can not clone row, template variable not found or variable contains markup.');
+            return;
         }
 
         $rowStart = $this->findRowStart($tagPos);
@@ -884,8 +884,8 @@ ENDXML;
     protected function addImageToArchive($strFilename, $mimeType = null)
     {
         $basename = basename($strFilename);
-        if (strpos($basename, '.') !== false) {
-            $extension = strtolower(substr($basename, strpos($basename, '.') + 1));
+        if (strrpos($basename, '.') !== false) {
+            $extension = strtolower(substr($basename, strrpos($basename, '.') + 1));
         } else {
             $extension = preg_replace('#^[^/]*/(\\w+)(?:\W.*)?#', '$1', strtolower($mimeType));
         }
