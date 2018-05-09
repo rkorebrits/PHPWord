@@ -560,16 +560,12 @@ ENDXML;
      *
      * @return \PhpOffice\PhpWord\Template
      *
-     * @throws \PhpOffice\PhpWord\Exception\Exception
      */
     public function insertImage($name, $srcFilename, $width = null, $height = null, $mimeType = null, $filename = null)
     {
 
         if ( ! $srcFilename || ! file_exists($srcFilename)) {
             $removeImageRegex = '/\${img:' . $name . '.*?}/i';
-            $this->tempDocumentMainPart = preg_replace(
-                    $removeImageRegex, '', $this->tempDocumentMainPart
-            );
 
             foreach ($this->tempDocumentHeaders as $index => $header) {
                 $this->tempDocumentHeaders[$index] = preg_replace(
@@ -586,6 +582,8 @@ ENDXML;
                         $removeImageRegex, '', $this->tempDocumentFooters[$index]
                 );
             }
+
+            return $this;
         }
 
         if (($width === null) || ($width === null) || ($mimeType === null)) {
@@ -602,13 +600,16 @@ ENDXML;
                 }
             }
         }
+
         if ($filename === null) {
             $filename = basename($srcFilename);
         }
+
         $width = Converter::cssToEmu($width);
         $height = Converter::cssToEmu($height);
         $name = preg_replace('/^(?:\\$?{?img:)(.*)\\}?/', '$1', $name);
         $mediaPath = $this->addImageToArchive($srcFilename, $mimeType);
+
         foreach ($this->tempDocumentHeaders as $index => $header) {
             $tempHeaderRelationships = array_key_exists($index, $this->tempDocumentHeadersRelationships) ? $this->tempDocumentHeadersRelationships[$index] : null;
             $imageInsertResult = $this->insertImageForPart($header, $tempHeaderRelationships, $name, $mediaPath, $width, $height, $filename);
@@ -616,10 +617,13 @@ ENDXML;
                 list($this->tempDocumentHeaders[$index], $this->tempDocumentHeadersRelationships[$index]) = $imageInsertResult;
             }
         }
+
         $imageInsertResult = $this->insertImageForPart($this->tempDocumentMainPart, $this->tempDocumentRelationships, $name, $mediaPath, $width, $height, $filename);
+
         if ($imageInsertResult) {
             list($this->tempDocumentMainPart, $this->tempDocumentRelationships) = $imageInsertResult;
         }
+
         foreach ($this->tempDocumentFooters as $index => $footer) {
             $tempFooterRelationships = array_key_exists($index, $this->tempDocumentFootersRelationships) ? $this->tempDocumentFootersRelationships[$index] : null;
             $imageInsertResult = $this->insertImageForPart($footer, $tempFooterRelationships, $name, $mediaPath, $width, $height, $filename);
@@ -627,6 +631,7 @@ ENDXML;
                 list($this->tempDocumentFooters[$index], $this->tempDocumentFootersRelationships[$index]) = $imageInsertResult;
             }
         }
+
         return $this;
     }
 
@@ -1060,6 +1065,7 @@ ENDXML;
         $tempDocumentPart = preg_replace_callback(
                 '/(<w:t(?:>|\s[^>]*>))?\\$((?:<[^>]+>)*)\\{([^\\}]+)\\}(<\\/w:t>)?/u',
                 function ($match) use ($relId, $name, $class, $width, $height, $filename, &$nextGraphicId) {
+//                    pr($match);
                     $variable = explode(':', strip_tags($match[3]));
                     if ((count($variable) > 1) && ($variable[0] == 'img') && ($variable[1] == $name)) {
                         // we just gotta hope this random element Id will be unique!
@@ -1073,7 +1079,7 @@ ENDXML;
                         }
                         $block = sprintf($class::IMAGE_TEMPLATE, $myWidth, $myHeight, $graphicId, sprintf('Graphic %d', $graphicId), $filename, $relId);
                         // sort out opening and closing text block tags if we've not removed both
-                        if (!($match[1] && $match[4])) {
+                        if (!($match[1] && array_key_exists(4, $match) && $match[4])) {
                             if (!$match[1]) {
                                 /*
                                  * we remove a closing text tag but not an opening one,
@@ -1081,7 +1087,7 @@ ENDXML;
                                  */
                                 $block = '</w:t>' . $block;
                             }
-                            if (!$match[4]) {
+                            if (!array_key_exists(4, $match) || !$match[4]) {
                                 /*
                                  * we remove an opening text tag but not a closing one,
                                  * so need to start a new text block after the image
