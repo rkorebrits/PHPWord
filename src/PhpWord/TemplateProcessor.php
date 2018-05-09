@@ -564,6 +564,30 @@ ENDXML;
      */
     public function insertImage($name, $srcFilename, $width = null, $height = null, $mimeType = null, $filename = null)
     {
+
+        if ( ! $srcFilename || ! file_exists($srcFilename)) {
+            $removeImageRegex = '/\${img:' . $name . '.*?}/i';
+            $this->tempDocumentMainPart = preg_replace(
+                    $removeImageRegex, '', $this->tempDocumentMainPart
+            );
+
+            foreach ($this->tempDocumentHeaders as $index => $header) {
+                $this->tempDocumentHeaders[$index] = preg_replace(
+                        $removeImageRegex, '', $this->tempDocumentHeaders[$index]
+                );
+            }
+
+            $this->tempDocumentMainPart = preg_replace(
+                    $removeImageRegex, '', $this->tempDocumentMainPart
+            );
+
+            foreach ($this->tempDocumentFooters as $index => $footer) {
+                $this->tempDocumentFooters[$index] = preg_replace(
+                        $removeImageRegex, '', $this->tempDocumentFooters[$index]
+                );
+            }
+        }
+
         if (($width === null) || ($width === null) || ($mimeType === null)) {
             $imageinfo = getimagesize($srcFilename);
             if (!empty($imageinfo)) {
